@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="A conflict-free appointment scheduling platform." />
+    <title>my-slot | Appointment Scheduling</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: { paper: "#F9F8F6", forest: "#1C3A27", ink: "#1A1A1A", metadata: "#737373", line: "#E8E5DF" },
+            fontFamily: { sans: ["Inter", "sans-serif"], serif: ["Instrument Serif", "serif"], mono: ["JetBrains Mono", "monospace"] },
+            boxShadow: { editorial: "0 10px 30px rgba(0,0,0,0.03)" },
+          },
+        },
+      };
+    </script>
+    <style type="text/tailwindcss">
+      @layer base {
+        body { @apply bg-paper font-sans text-ink antialiased; }
+        input[type="date"]::-webkit-calendar-picker-indicator { @apply cursor-pointer opacity-50; }
+        input[aria-invalid="true"] { @apply border-red-400 ring-4 ring-red-50; }
+      }
+      @layer components {
+        .slot-grid { @apply grid grid-cols-3 gap-2 sm:grid-cols-5; }
+        .slot { @apply min-h-11 rounded-xl border border-line bg-white px-2 font-mono text-[10px] font-medium text-ink transition duration-200 hover:-translate-y-px hover:border-forest/30 hover:bg-forest/[0.03] disabled:cursor-not-allowed disabled:border-transparent disabled:bg-stone-100 disabled:text-metadata/50 disabled:line-through; }
+        .slot.selected { @apply border-forest bg-forest text-white shadow-sm hover:bg-forest; }
+        .slot-placeholder { @apply col-span-full flex min-h-20 items-center justify-center rounded-xl border border-dashed border-line bg-stone-50 px-4 text-center text-xs text-metadata; }
+        .appointment-list { @apply overflow-hidden rounded-2xl border border-line bg-white; }
+        .appointment-row { @apply grid grid-cols-[76px_1fr_auto] items-center gap-x-3 gap-y-1 border-b border-line px-4 py-4 last:border-b-0 sm:grid-cols-[110px_1fr_1fr_auto] sm:gap-x-5 sm:px-5; }
+        .appointment-time { @apply font-mono text-[11px] font-medium text-forest; }
+        .customer { @apply flex min-w-0 flex-col gap-0.5; }
+        .customer strong { @apply truncate text-sm font-medium text-ink; }
+        .customer span { @apply truncate text-xs text-metadata; }
+        .service-label { @apply col-start-2 inline-flex items-center gap-1.5 text-xs text-metadata sm:col-auto; }
+        .service-label::before { @apply h-1.5 w-1.5 rounded-full bg-forest/60 content-[""]; }
+        .cancel-button { @apply col-start-3 row-start-1 grid h-8 w-8 place-items-center rounded-full text-metadata transition hover:bg-red-50 hover:text-red-700 sm:col-auto; }
+        .cancel-button svg { @apply h-4 w-4; }
+        .empty-state { @apply flex min-h-44 flex-col items-center justify-center gap-3 px-4 text-center text-metadata; }
+        .empty-state svg { @apply h-5 w-5 text-forest/45; }
+        .empty-state p { @apply m-0 text-sm; }
+        .toast { @apply pointer-events-none fixed bottom-5 right-5 z-50 max-w-[calc(100vw-2.5rem)] translate-y-3 rounded-xl border border-forest/10 bg-forest px-4 py-3 text-sm font-medium text-white opacity-0 shadow-lg transition duration-200; }
+        .toast.error { @apply border-red-200 bg-red-50 text-red-800; }
+        .toast.visible { @apply translate-y-0 opacity-100; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="border-b border-line bg-paper/90 backdrop-blur-sm">
+      <div class="mx-auto flex h-[72px] max-w-7xl items-center justify-between px-5 sm:px-8 lg:px-12">
+        <a class="group inline-flex items-center gap-2.5 text-[15px] font-semibold tracking-[-0.02em] text-ink" href="#booking" aria-label="my-slot home">
+          <span class="h-2.5 w-2.5 rounded-full bg-forest transition-transform duration-200 group-hover:scale-125"></span>
+          <span>my-slot</span>
+        </a>
+        <div class="hidden items-center gap-2 rounded-full border border-forest/10 bg-forest/[0.035] px-3 py-1.5 text-[10px] font-medium uppercase tracking-[0.12em] text-forest sm:flex">
+          <span class="h-1.5 w-1.5 rounded-full bg-forest"></span>
+          Booking desk open
+        </div>
+        <a class="inline-flex items-center gap-1.5 text-xs font-medium text-metadata transition hover:text-forest" href="#schedule">View schedule <span class="text-base leading-none">&rarr;</span></a>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-7xl px-5 pb-20 pt-12 sm:px-8 sm:pt-16 lg:px-12 lg:pt-24">
+      <section class="grid items-start gap-12 lg:grid-cols-[minmax(0,0.85fr)_minmax(520px,1.15fr)] lg:gap-20 xl:gap-28" id="booking">
+        <div class="flex min-h-[520px] flex-col justify-between lg:pt-5">
+          <div>
+            <p class="mb-6 font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-metadata">Appointment scheduling</p>
+            <h1 class="max-w-lg font-serif text-[clamp(4rem,7.5vw,7.5rem)] leading-[0.82] tracking-[-0.045em] text-ink">Make time<br /><em class="font-normal text-forest">work for you.</em></h1>
+            <p class="mt-8 max-w-sm text-[15px] leading-7 text-metadata">A considered, conflict-free way to reserve time for the work that deserves your full attention.</p>
+          </div>
+          <dl class="mt-14 grid max-w-sm grid-cols-2 gap-8 border-t border-line pt-5">
+            <div><dt class="font-mono text-[10px] uppercase tracking-[0.11em] text-metadata">Slot duration</dt><dd class="mt-2 text-sm font-medium text-ink">30 min</dd></div>
+            <div><dt class="font-mono text-[10px] uppercase tracking-[0.11em] text-metadata">Office hours</dt><dd class="mt-2 text-sm font-medium text-ink">Mon - Fri</dd></div>
+          </dl>
+        </div>
+
+        <section class="rounded-3xl border border-line bg-white p-5 shadow-editorial sm:p-8 lg:p-9" aria-labelledby="booking-title">
+          <div class="flex items-start justify-between gap-6">
+            <div><p class="mb-2 font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-metadata">New appointment</p><h2 class="text-xl font-semibold tracking-[-0.025em] text-ink sm:text-2xl" id="booking-title">Reserve a slot</h2></div>
+            <span class="font-mono text-[10px] text-metadata">01 / 01</span>
+          </div>
+          <form class="mt-8" id="booking-form" novalidate>
+            <div class="grid gap-4 sm:grid-cols-2">
+              <label class="block"><span class="mb-2 block text-xs font-medium text-ink">Full name</span><input class="h-12 w-full rounded-xl border border-line bg-white px-4 text-sm text-ink outline-none transition placeholder:text-metadata/55 focus:border-forest/50 focus:ring-4 focus:ring-forest/[0.07]" id="customer-name" name="customer_name" type="text" autocomplete="name" placeholder="Alex Morgan" maxlength="80" required /><small class="mt-1.5 block min-h-4 text-[11px] text-red-700" data-error-for="customer_name"></small></label>
+              <label class="block"><span class="mb-2 block text-xs font-medium text-ink">Email address</span><input class="h-12 w-full rounded-xl border border-line bg-white px-4 text-sm text-ink outline-none transition placeholder:text-metadata/55 focus:border-forest/50 focus:ring-4 focus:ring-forest/[0.07]" id="email" name="email" type="email" autocomplete="email" placeholder="alex@example.com" required /><small class="mt-1.5 block min-h-4 text-[11px] text-red-700" data-error-for="email"></small></label>
+            </div>
+
+            <fieldset class="mt-5"><legend class="mb-2.5 text-xs font-medium text-ink">Choose a service</legend><div class="grid gap-2.5 sm:grid-cols-3">
+              {% for service in services %}
+              <label class="group relative cursor-pointer"><input class="peer sr-only" type="radio" name="service_type" value="{{ service.name }}" {% if loop.first %}checked{% endif %} /><span class="flex min-h-[116px] flex-col rounded-2xl border border-line bg-white p-4 transition duration-200 ease-out group-hover:-translate-y-0.5 group-hover:border-forest/25 group-hover:bg-forest/[0.025] peer-checked:border-forest/45 peer-checked:bg-forest/[0.07] peer-checked:ring-1 peer-checked:ring-forest/20"><i class="mb-5 h-[18px] w-[18px] text-forest/70" data-lucide="{% if loop.index == 1 %}messages-square{% elif loop.index == 2 %}sparkles{% else %}refresh-cw{% endif %}"></i><b class="text-xs font-medium text-ink">{{ service.name }}</b><small class="mt-1 font-mono text-[10px] text-metadata">{{ service.duration }}</small></span></label>
+              {% endfor %}
+            </div><small class="mt-1.5 block min-h-4 text-[11px] text-red-700" data-error-for="service_type"></small></fieldset>
+
+            <label class="mt-5 block"><span class="mb-2 block text-xs font-medium text-ink">Appointment date</span><span class="relative block"><i class="pointer-events-none absolute left-4 top-1/2 h-[17px] w-[17px] -translate-y-1/2 text-metadata" data-lucide="calendar-days"></i><input class="h-12 w-full rounded-xl border border-line bg-white py-0 pl-11 pr-4 text-sm text-ink outline-none transition focus:border-forest/50 focus:ring-4 focus:ring-forest/[0.07]" id="appointment-date" name="appointment_date" type="date" required /></span><small class="mt-1.5 block min-h-4 text-[11px] text-red-700" data-error-for="appointment_date"></small></label>
+
+            <fieldset class="mt-5"><div class="mb-2.5 flex items-baseline justify-between gap-4"><legend class="text-xs font-medium text-ink">Available times</legend><span class="font-mono text-[10px] text-metadata" id="slot-state">Choose a date first</span></div><div class="slot-grid" id="slot-grid" aria-live="polite"></div><small class="mt-1.5 block min-h-4 text-[11px] text-red-700" data-error-for="time_slot"></small></fieldset>
+
+            <button class="mt-5 flex h-[52px] w-full items-center justify-between rounded-xl bg-forest px-5 text-sm font-medium text-white transition duration-200 hover:bg-[#285136] focus:outline-none focus:ring-4 focus:ring-forest/15 disabled:cursor-wait disabled:opacity-60" type="submit" id="book-button"><span>Confirm appointment</span><i class="h-[18px] w-[18px]" data-lucide="arrow-right"></i></button>
+          </form>
+        </section>
+      </section>
+
+      <section class="mt-20 border-t border-line pt-8 sm:mt-28 sm:pt-10" id="schedule" aria-labelledby="schedule-title">
+        <div class="flex flex-col justify-between gap-5 sm:flex-row sm:items-end"><div><p class="mb-2 font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-metadata">Appointment tracker</p><h2 class="text-2xl font-semibold tracking-[-0.03em] text-ink" id="schedule-title">Today at a glance</h2></div><label class="flex h-11 w-full items-center rounded-xl border border-line bg-white px-3 sm:w-[178px]"><i class="mr-2 h-4 w-4 text-metadata" data-lucide="calendar-days"></i><input class="min-w-0 border-0 bg-transparent p-0 text-xs text-ink outline-none focus:ring-0" id="schedule-date" type="date" aria-label="Schedule date" /></label></div>
+        <div class="mt-7 grid overflow-hidden rounded-2xl border border-line bg-white sm:grid-cols-3"><div class="border-b border-line px-5 py-5 sm:border-b-0 sm:border-r"><span class="font-mono text-[10px] uppercase tracking-[0.1em] text-metadata">Scheduled</span><strong class="mt-2 block text-2xl font-semibold tracking-[-0.04em] text-ink" id="scheduled-count">0</strong></div><div class="border-b border-line px-5 py-5 sm:border-b-0 sm:border-r"><span class="font-mono text-[10px] uppercase tracking-[0.1em] text-metadata">Open slots</span><strong class="mt-2 block text-2xl font-semibold tracking-[-0.04em] text-ink" id="open-count">15</strong></div><div class="px-5 py-5"><span class="font-mono text-[10px] uppercase tracking-[0.1em] text-metadata">Next appointment</span><strong class="mt-2 block text-2xl font-semibold tracking-[-0.04em] text-ink" id="next-time">-</strong></div></div>
+        <div class="mt-4 appointment-list" id="appointment-list" aria-live="polite"><div class="empty-state"><i data-lucide="calendar-x-2"></i><p>No appointments booked for this day.</p></div></div>
+      </section>
+    </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+  </body>
+</html>
